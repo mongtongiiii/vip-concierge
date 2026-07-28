@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --bg-dark: #121d26;     /* 이미지의 다크 네이비 배경 */
-            --card-dark: #1c252e;   /* 카드 배경 */
-            --gold: #c5a059;        /* 메인 골드 컬러 */
+            --bg-dark: #121d26;
+            --card-dark: #1c252e;
+            --gold: #c5a059;
             --text-white: #ffffff;
             --border-line: #2c3e50;
         }
@@ -24,7 +24,6 @@
             overflow: hidden;
         }
 
-        /* 헤더: 업로드된 이미지 디자인 반영 */
         .header {
             padding: 25px 40px;
             border-bottom: 1px solid var(--border-line);
@@ -44,7 +43,6 @@
 
         .header h1 i { margin-right: 15px; }
 
-        /* 우측 상단 실시간 시간 */
         .update-timer {
             color: var(--gold);
             font-size: 1.1rem;
@@ -57,7 +55,6 @@
             font-size: 1.3rem; 
         }
 
-        /* 메인 컨텐츠 영역 */
         .content { flex: 1; padding: 30px; overflow-y: auto; }
         
         .order-grid {
@@ -80,7 +77,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 새 주문 강조 효과 */
         .order-card.new { 
             border: 2px solid var(--gold); 
             box-shadow: 0 0 15px rgba(197, 160, 89, 0.2); 
@@ -110,7 +106,6 @@
             border-bottom: 1px solid #2d3436;
         }
 
-        /* 하단 중앙 전체 완료 버튼 영역 */
         .footer {
             padding: 20px;
             display: flex; 
@@ -136,7 +131,6 @@
             color: #000; 
         }
 
-        /* 개별 주문 완료 버튼 */
         .btn-single-complete {
             width: 100%; 
             background: #252f39; 
@@ -174,7 +168,7 @@
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js';
-        import { getDatabase, ref, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js';
+        import { getDatabase, ref, onValue, update } from 'https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyApkN572GJrTpHt19yrVafEKqf3ZprTE64",
@@ -183,9 +177,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         
+        const TERMINAL_PATH = 'terminal1';
         let processedIds = new Set(); 
+        let pendingOrdersCache = {};
 
-        // 1. 실시간 시계 업데이트 기능 (우측 상단)
+        const getYearMonth = () => {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        };
+
         function updateClock() {
             const now = new Date();
             const h = String(now.getHours()).padStart(2, '0');
@@ -196,12 +196,15 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 2. T1 주문 실시간 감시 (onValue)
-        onValue(ref(db, 'vip_orders/terminal1'), (snap) => {
-            const data = snap.val();
+        const currentYM = getYearMonth();
+        onValue(ref(db, `vip_orders/${currentYM}/${TERMINAL_PATH}`), (snap) => {
+            const data = snap.val() || {};
             const container = document.getElementById('order-container');
             
-            if(!data) { 
+            const pendingOrders = Object.entries(data).filter(([id, order]) => order.status !== 'completed');
+            pendingOrdersCache = Object.fromEntries(pendingOrders);
+
+            if(pendingOrders.length === 0) { 
                 container.innerHTML = '<div style="color:#555; text-align:center; grid-column: 1/-1; margin-top:50px;">현재 대기 중인 주문이 없습니다.</div>'; 
                 return; 
             }
@@ -209,13 +212,13 @@
             let playSnd = false;
             let htmlBuffer = '';
             
-            const sortedOrders = Object.entries(data).sort((a,b) => b[1].timestamp - a[1].timestamp);
+            const sortedOrders = pendingOrders.sort((a,b) => b[1].timestamp - a[1].timestamp);
 
             sortedOrders.forEach(([id, order]) => {
                 if(order.isNew && !processedIds.has(id)) {
                     playSnd = true;
                     processedIds.add(id);
-                    setTimeout(() => update(ref(db, `vip_orders/terminal1/${id}`), {isNew: false}), 1000);
+                    setTimeout(() => update(ref(db, `vip_orders/${currentYM}/${TERMINAL_PATH}/${id}`), {isNew: false}), 1000);
                 }
 
                 htmlBuffer += `
@@ -244,13 +247,31 @@
         });
 
         window.finishOrder = (id) => {
-            remove(ref(db, `vip_orders/terminal1/${id}`));
+            const ym = getYearMonth();
+            update(ref(db, `vip_orders/${ym}/${TERMINAL_PATH}/${id}`), {
+                status: 'completed',
+                completedAt: Date.now()
+            });
         };
 
         window.clearAllOrders = () => {
-            if(confirm("T1의 모든 주문을 완료 처리하시겠습니까?")) {
-                remove(ref(db, 'vip_orders/terminal1'));
-                processedIds.clear();
+            const pendingIds = Object.keys(pendingOrdersCache);
+            if(pendingIds.length === 0) {
+                alert("처리할 대기 주문이 없습니다.");
+                return;
+            }
+
+            if(confirm("현재 표시된 모든 주문을 완료 처리하시겠습니까?")) {
+                const ym = getYearMonth();
+                const updates = {};
+                pendingIds.forEach(id => {
+                    updates[`vip_orders/${ym}/${TERMINAL_PATH}/${id}/status`] = 'completed';
+                    updates[`vip_orders/${ym}/${TERMINAL_PATH}/${id}/completedAt`] = Date.now();
+                });
+                
+                update(ref(db), updates).then(() => {
+                    processedIds.clear();
+                });
             }
         };
     </script>
