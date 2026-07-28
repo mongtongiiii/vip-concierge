@@ -195,7 +195,7 @@
 
         let currentTerminal = '';
         let orderItems = []; 
-        let isSubmitting = false; // 중복 제출 방지 플래그
+        let isSubmitting = false;
 
         window.setTerminal = (t) => {
             currentTerminal = t;
@@ -308,6 +308,11 @@
             document.getElementById('loading-spinner').style.display = 'block';
 
             try {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const ymKey = `${year}-${month}`; // 연/월 경로 지정 (예: 2026-03)
+
                 const orderData = {
                     room: room, 
                     terminal: currentTerminal.toUpperCase(),
@@ -321,11 +326,11 @@
                     isNew: true
                 };
 
-                await push(ref(database, `vip_orders/${currentTerminal}`), orderData);
+                // 연월 노드 하위에 저장하여 대시보드 및 활용현황 검색과 동기화
+                await push(ref(database, `vip_orders/${ymKey}/${currentTerminal}`), orderData);
                 
                 await Swal.fire('성공', '주문이 전송되었습니다.', 'success');
                 
-                // 전송 성공 후 장바구니 비우기 및 UI 초기화
                 orderItems = [];
                 updateOrderSummary();
                 updateDetailedOptionsVisibility();
@@ -340,7 +345,6 @@
             }
         };
 
-        // 초기 메뉴 바인딩
         const grid = document.getElementById('menu-selection-grid');
         grid.innerHTML = ''; 
         menuList.forEach(m => {
@@ -353,7 +357,6 @@
 
         document.getElementById('terminal1-btn').onclick = () => setTerminal('terminal1');
         document.getElementById('terminal2-btn').onclick = () => setTerminal('terminal2');
-
     </script>
 </body>
 </html>
