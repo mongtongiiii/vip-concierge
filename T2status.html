@@ -197,6 +197,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         
+        // T2 전용 경로 설정
         const TERMINAL_PATH = 'terminal2';
         let processedIds = new Set(); 
         let pendingOrdersCache = {};
@@ -280,7 +281,7 @@
             });
         };
 
-        // 데이터를 직접 삭제하지 않고 현황판에서만 숨김 처리 (활용 현황 데이터는 유지를 위함)
+        // 데이터를 직접 삭제하지 않고 현황판에서만 숨김 처리 (통계/활용 데이터 유지를 위함)
         window.deleteOrder = (id) => {
             if(confirm("이 주문을 현황판에서 삭제하시겠습니까? (통계 데이터에는 유지됩니다)")) {
                 const ym = getYearMonth();
