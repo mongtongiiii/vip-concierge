@@ -131,13 +131,18 @@
             color: #000; 
         }
 
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
         .btn-single-complete {
-            width: 100%; 
+            flex: 2; 
             background: #252f39; 
             border: 1px solid #444;
             color: #ddd; 
             padding: 10px; 
-            margin-top: 15px;
             border-radius: 6px; 
             cursor: pointer; 
             font-weight: 600;
@@ -145,6 +150,21 @@
         .btn-single-complete:hover { 
             border-color: var(--gold); 
             color: var(--gold); 
+        }
+
+        .btn-delete {
+            flex: 1;
+            background: #2a1b1d;
+            border: 1px solid #721c24;
+            color: #f8d7da;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-delete:hover {
+            background: #721c24;
+            color: #fff;
         }
     </style>
 </head>
@@ -201,7 +221,10 @@
             const data = snap.val() || {};
             const container = document.getElementById('order-container');
             
-            const pendingOrders = Object.entries(data).filter(([id, order]) => order.status !== 'completed');
+            // 완료되거나 삭제(숨김) 처리되지 않은 주문만 노출
+            const pendingOrders = Object.entries(data).filter(([id, order]) => 
+                order.status !== 'completed' && order.status !== 'hidden'
+            );
             pendingOrdersCache = Object.fromEntries(pendingOrders);
 
             if(pendingOrders.length === 0) { 
@@ -233,7 +256,10 @@
                                 </div>
                             `).join('')}
                         </div>
-                        <button class="btn-single-complete" onclick="finishOrder('${id}')">주문 완료</button>
+                        <div class="card-actions">
+                            <button class="btn-single-complete" onclick="finishOrder('${id}')">주문 완료</button>
+                            <button class="btn-delete" onclick="deleteOrder('${id}')">삭제</button>
+                        </div>
                     </div>`;
             });
 
@@ -252,6 +278,17 @@
                 status: 'completed',
                 completedAt: Date.now()
             });
+        };
+
+        // 데이터를 직접 삭제하지 않고 현황판에서만 숨김 처리 (활용 현황 데이터는 유지를 위함)
+        window.deleteOrder = (id) => {
+            if(confirm("이 주문을 현황판에서 삭제하시겠습니까? (통계 데이터에는 유지됩니다)")) {
+                const ym = getYearMonth();
+                update(ref(db, `vip_orders/${ym}/${TERMINAL_PATH}/${id}`), {
+                    status: 'hidden',
+                    deletedAt: Date.now()
+                });
+            }
         };
 
         window.clearAllOrders = () => {
