@@ -3,196 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIP Concierge APP 활용 현황</title>
+    <title>VIP Lounge - 활용 현황 및 통계</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- 1. 스타일(색상, 테두리 등)을 지원하는 xlsx-js-style 라이브러리 -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --bg-dark: #121d26;
+            --card-dark: #1c252e;
+            --gold: #c5a059;
+            --text-white: #ffffff;
+            --border-line: #2c3e50;
+        }
+
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #ffffff;
-            margin: 0; padding: 30px;
-            color: #333333;
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+            margin: 0; padding: 20px;
         }
 
-        .top-bar {
+        .header {
             display: flex; justify-content: space-between; align-items: center;
-            max-width: 1650px; margin: 0 auto 15px auto;
+            border-bottom: 1px solid var(--border-line);
+            padding-bottom: 15px; margin-bottom: 25px;
         }
 
-        .filter-group {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 14px; font-weight: 700;
+        .header h1 {
+            color: var(--gold); font-size: 1.8rem; margin: 0;
+            display: flex; align-items: center; gap: 10px;
         }
 
-        .select-filter {
-            padding: 6px 12px;
-            border: 1px solid #cccccc;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: bold;
-            background-color: #ffffff;
-            cursor: pointer;
+        .live-tag {
+            background: #27ae60; color: #fff; font-size: 0.8rem;
+            padding: 4px 10px; border-radius: 12px; font-weight: bold;
+            animation: pulse 2s infinite;
         }
 
-        .btn-group {
-            display: flex; gap: 10px;
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
 
-        .btn-action {
-            color: white; border: none; padding: 10px 20px;
-            font-size: 14px; font-weight: 700; border-radius: 6px;
-            cursor: pointer; display: flex; align-items: center; gap: 8px;
-            transition: opacity 0.2s;
-        }
-        .btn-action:hover { opacity: 0.85; }
-        .btn-search { background-color: #2980b9; }
-        .btn-excel { background-color: #27ae60; }
-        .btn-delete-all { background-color: #d63031; } /* 전체삭제 버튼 (빨간색) */
-
-        .dashboard-container {
-            display: flex; gap: 25px; align-items: flex-start; max-width: 1650px; margin: 0 auto;
+        .filter-section {
+            display: flex; gap: 10px; margin-bottom: 25px; align-items: center; background: var(--card-dark);
+            padding: 15px; border-radius: 8px; border: 1px solid var(--border-line);
         }
 
-        table { border-collapse: collapse; font-size: 13px; text-align: center; width: 100%; }
-        th, td { border: 1px solid #000000; padding: 6px 8px; height: 24px; }
-
-        .main-status-section { flex: 2.5; min-width: 850px; }
-        .main-title {
-            background-color: #b2d8b2; border: 1px solid #000000;
-            font-size: 18px; font-weight: 700; text-align: center; padding: 12px 0; margin-bottom: 15px;
-        }
-        .main-table th { background-color: #e2efda; font-weight: 700; }
-
-        .select-custom {
-            width: 100%; padding: 2px; border: 1px solid #cccccc; border-radius: 3px;
-            font-family: inherit; font-size: 12px; text-align: center; background-color: #ffffff;
+        select, input {
+            background: #121d26; color: #fff; border: 1px solid var(--border-line);
+            padding: 8px 12px; border-radius: 4px; outline: none;
         }
 
-        .btn-delete { background: transparent; border: none; color: #e74c3c; cursor: pointer; font-size: 14px; }
-        .btn-delete:hover { transform: scale(1.15); }
-
-        .stats-section-group { flex: 1.5; display: flex; gap: 20px; min-width: 550px; }
-        .stats-box { flex: 1; }
-        .stats-title {
-            background-color: #d9e1f2; border: 1px solid #000000;
-            font-size: 14px; font-weight: 700; text-align: center; padding: 8px 0; margin-bottom: 15px;
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-bottom: 25px;
         }
-        .stats-table th { background-color: #f2f2f2; font-weight: 700; }
-        .total-row td { background-color: #d9d9d9; font-weight: 700; }
-        .rank-box { width: 140px; flex-shrink: 0; }
-        .rank-table th { background-color: #fff2cc; }
+
+        .stat-card {
+            background: var(--card-dark); border: 1px solid var(--border-line);
+            padding: 20px; border-radius: 8px; text-align: center;
+        }
+
+        .stat-card h3 { margin: 0; color: #888; font-size: 0.9rem; }
+        .stat-card p { margin: 10px 0 0; color: var(--gold); font-size: 2rem; font-weight: bold; }
+
+        .chart-container {
+            background: var(--card-dark); border: 1px solid var(--border-line);
+            padding: 20px; border-radius: 8px; margin-bottom: 25px; height: 350px;
+        }
+
+        .table-container {
+            background: var(--card-dark); border: 1px solid var(--border-line);
+            border-radius: 8px; overflow-x: auto;
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border-line); font-size: 0.95rem; }
+        th { background: #151d24; color: var(--gold); }
+        tr:hover { background: rgba(255,255,255,0.02); }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <!-- 연도/월 조회 필터 -->
-        <div class="filter-group">
-            <i class="far fa-calendar-alt"></i> 조회 기간: 
-            <select id="select-year" class="select-filter"></select>
-            <select id="select-month" class="select-filter">
-                <option value="ALL">전체 월</option>
-                <option value="01">01월</option>
-                <option value="02">02월</option>
-                <option value="03">03월</option>
-                <option value="04">04월</option>
-                <option value="05">05월</option>
-                <option value="06">06월</option>
-                <option value="07">07월</option>
-                <option value="08">08월</option>
-                <option value="09">09월</option>
-                <option value="10">10월</option>
-                <option value="11">11월</option>
-                <option value="12">12월</option>
-            </select>
-            <button class="btn-action btn-search" onclick="fetchSelectedData()">
-                <i class="fas fa-search"></i> 조회
-            </button>
-        </div>
+    <div class="header">
+        <h1><i class="fas fa-chart-line"></i> VIP Lounge 이용 현황 <span class="live-tag">REALTIME</span></h1>
+    </div>
 
-        <div class="btn-group">
-            <button class="btn-action btn-excel" onclick="exportToStyledXlsx()">
-                <i class="fas fa-file-excel"></i> 엑셀로 저장
-            </button>
-            <!-- PDF 버튼 제거 후 데이터 전체삭제 버튼 추가 -->
-            <button class="btn-action btn-delete-all" onclick="deleteAllSelectedData()">
-                <i class="fas fa-trash-alt"></i> 데이터 전체삭제
-            </button>
+    <div class="filter-section">
+        <label><i class="far fa-calendar-alt"></i> 조회 월 선택:</label>
+        <input type="month" id="search-month" onchange="setupRealtimeListener()">
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>총 주문 건수</h3>
+            <p id="total-orders">0건</p>
+        </div>
+        <div class="stat-card">
+            <h3>T1 주문 건수</h3>
+            <p id="t1-orders">0건</p>
+        </div>
+        <div class="stat-card">
+            <h3>T2 주문 건수</h3>
+            <p id="t2-orders">0건</p>
+        </div>
+        <div class="stat-card">
+            <h3>총 음료 잔 수</h3>
+            <p id="total-cups">0잔</p>
         </div>
     </div>
 
-    <div class="dashboard-container">
-        <!-- 1. VIP Concierge APP 활용 현황 메인 표 -->
-        <div class="main-status-section">
-            <div class="main-title">VIP Concierge APP 활용 현황</div>
-            <table class="main-table" id="table-main">
-                <thead>
-                    <tr>
-                        <th style="width: 10%;">일 자</th>
-                        <th style="width: 10%;">시간</th>
-                        <th style="width: 10%;">룸</th>
-                        <th style="width: 12%;">구분</th>
-                        <th style="width: 20%;">제공음료</th>
-                        <th style="width: 8%;">수량</th>
-                        <th style="width: 20%;">특이사항</th>
-                        <th class="mgmt-col" style="width: 10%;">관리</th>
-                    </tr>
-                </thead>
-                <tbody id="main-history-tbody"></tbody>
-            </table>
-        </div>
+    <div class="chart-container">
+        <canvas id="menuChart"></canvas>
+    </div>
 
-        <!-- 2. 우측 통계 영역 -->
-        <div class="stats-section-group">
-            <div class="stats-box">
-                <div class="stats-title">내빈/외빈 음료 선호도</div>
-                <table class="stats-table" id="table-pref">
-                    <thead>
-                        <tr>
-                            <th style="width: 40%;">제공음료</th>
-                            <th style="width: 20%;">내빈</th>
-                            <th style="width: 20%;">외빈</th>
-                            <th style="width: 20%;">총합계</th>
-                        </tr>
-                    </thead>
-                    <tbody id="preference-tbody"></tbody>
-                    <tfoot>
-                        <tr class="total-row" id="preference-total-row">
-                            <td>총합계</td>
-                            <td id="total-naebin">0</td>
-                            <td id="total-waebin">0</td>
-                            <td id="total-all">0</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            <div class="rank-box">
-                <div class="stats-title">내빈 선호 순위</div>
-                <table class="rank-table" id="table-rank-naebin">
-                    <thead><tr><th style="width: 40%;">순위</th><th style="width: 60%;">음료</th></tr></thead>
-                    <tbody id="naebin-rank-tbody"></tbody>
-                </table>
-            </div>
-
-            <div class="rank-box">
-                <div class="stats-title">외빈 선호 순위</div>
-                <table class="rank-table" id="table-rank-waebin">
-                    <thead><tr><th style="width: 40%;">순위</th><th style="width: 60%;">음료</th></tr></thead>
-                    <tbody id="waebin-rank-tbody"></tbody>
-                </table>
-            </div>
-        </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>일시</th>
+                    <th>터미널</th>
+                    <th>룸</th>
+                    <th>주문 메뉴 상세</th>
+                    <th>총 수량</th>
+                </tr>
+            </thead>
+            <tbody id="data-table-body">
+                <tr><td colspan="5" style="text-align:center; color:#777;">데이터를 불러오는 중입니다...</td></tr>
+            </tbody>
+        </table>
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js';
-        import { getDatabase, ref, get, remove, update } from 'https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js';
+        import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyApkN572GJrTpHt19yrVafEKqf3ZprTE64",
@@ -201,435 +147,130 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 연도 셀렉트 박스 동적 생성 (현재년도 기준 -2년 ~ +3년)
-        const selectYear = document.getElementById('select-year');
-        const selectMonth = document.getElementById('select-month');
+        let chartInstance = null;
+        let currentListener = null;
+
+        // 초기 연월 설정 (YYYY-MM)
         const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const defaultYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('search-month').value = defaultYM;
 
-        for (let y = currentYear - 2; y <= currentYear + 3; y++) {
-            const opt = document.createElement('option');
-            opt.value = y;
-            opt.innerText = `${y}년`;
-            if (y === currentYear) opt.selected = true;
-            selectYear.appendChild(opt);
-        }
-        selectMonth.value = currentMonth;
+        window.setupRealtimeListener = () => {
+            const ym = document.getElementById('search-month').value;
+            if(!ym) return;
 
-        let fetchedDataList = [];
-        const userSelections = {};
+            const targetRef = ref(db, `vip_orders/${ym}`);
 
-        // 데이터 조회 함수
-        async function fetchSelectedData() {
-            const year = selectYear.value;
-            const month = selectMonth.value;
+            // 실시간 리스너 연결 (조회 버튼 없이 자동 업데이트)
+            onValue(targetRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                processAndRenderData(data);
+            });
+        };
 
-            let targetYMList = [];
-            if (month === 'ALL') {
-                for (let m = 1; m <= 12; m++) {
-                    targetYMList.push(`${year}-${String(m).padStart(2, '0')}`);
-                }
-            } else {
-                targetYMList.push(`${year}-${month}`);
-            }
+        function processAndRenderData(data) {
+            let totalOrders = 0;
+            let t1Orders = 0;
+            let t2Orders = 0;
+            let totalCups = 0;
+            const menuCounts = {};
+            const allList = [];
 
-            fetchedDataList = [];
+            // T1 / T2 데이터 집계 (hidden 상태 포함 전체 파악)
+            ['terminal1', 'terminal2'].forEach(term => {
+                if (data[term]) {
+                    Object.entries(data[term]).forEach(([id, order]) => {
+                        totalOrders++;
+                        if (term === 'terminal1') t1Orders++;
+                        if (term === 'terminal2') t2Orders++;
 
-            try {
-                const promises = targetYMList.map(ym => get(ref(db, `vip_orders/${ym}`)));
-                const snapshots = await Promise.all(promises);
+                        let orderCupCount = 0;
+                        let menuSummary = [];
 
-                snapshots.forEach((snap, idx) => {
-                    if (snap.exists()) {
-                        const ymStr = targetYMList[idx];
-                        const monthData = snap.val();
-                        ['terminal1', 'terminal2'].forEach(termKey => {
-                            const termData = monthData[termKey] || {};
-                            Object.entries(termData).forEach(([id, order]) => {
-                                fetchedDataList.push({ ym: ymStr, id, order, terminal: termKey });
+                        if (order.orderDetails && Array.isArray(order.orderDetails)) {
+                            order.orderDetails.forEach(item => {
+                                const qty = parseInt(item.quantity) || 0;
+                                totalCups += qty;
+                                orderCupCount += qty;
+
+                                menuCounts[item.menu] = (menuCounts[item.menu] || 0) + qty;
+                                menuSummary.push(`${item.menu} (${qty}잔)`);
                             });
-                        });
-                    }
-                });
-
-                // 루트 레벨 데이터 지원 (구버전 호환)
-                if (fetchedDataList.length === 0) {
-                    const legacyT1 = await get(ref(db, 'vip_orders/terminal1'));
-                    const legacyT2 = await get(ref(db, 'vip_orders/terminal2'));
-
-                    if (legacyT1.exists()) {
-                        Object.entries(legacyT1.val()).forEach(([id, order]) => {
-                            fetchedDataList.push({ ym: '', id, order, terminal: 'terminal1' });
-                        });
-                    }
-                    if (legacyT2.exists()) {
-                        Object.entries(legacyT2.val()).forEach(([id, order]) => {
-                            fetchedDataList.push({ ym: '', id, order, terminal: 'terminal2' });
-                        });
-                    }
-                }
-
-                updateDashboard();
-            } catch (err) {
-                console.error("데이터 로드 중 오류 발생:", err);
-            }
-        }
-
-        window.fetchSelectedData = fetchSelectedData;
-
-        function updateDashboard() {
-            const mainTbody = document.getElementById('main-history-tbody');
-            mainTbody.innerHTML = '';
-
-            fetchedDataList.sort((a, b) => (a.order.timestamp || 0) - (b.order.timestamp || 0));
-
-            const drinkStats = {};
-            let globalRowCount = 0;
-
-            fetchedDataList.forEach(({ ym, id, order, terminal }) => {
-                if (order.userSelections) {
-                    Object.assign(userSelections, order.userSelections);
-                }
-
-                if (order.orderDetails && Array.isArray(order.orderDetails)) {
-                    order.orderDetails.forEach((detail, index) => {
-                        globalRowCount++;
-                        const rowKey = `${id}_${index}`;
-
-                        if (!userSelections[rowKey]) {
-                            userSelections[rowKey] = {
-                                gubun: detail.menu.includes('[주빈]') ? '내빈' : '외빈',
-                                note: ''
-                            };
                         }
 
-                        const currentGubun = userSelections[rowKey].gubun;
-                        const currentNote = userSelections[rowKey].note;
-                        
-                        let menuName = detail.menu.replace('[주빈] ', '');
-                        if(menuName.includes('HOT 아메리카노')) menuName = '커피(H)';
-                        else if(menuName.includes('ICE 아메리카노')) menuName = '커피(I)';
-                        else if(menuName.includes('녹차')) menuName = '녹차(H)';
-                        else if(menuName.includes('오미자차') && order.orderDetails[0].options?.includes('ICE')) menuName = '오미자차(I)';
-                        else if(menuName.includes('오미자차')) menuName = '오미자차(H)';
-                        else if(menuName.includes('홍차')) menuName = '홍차(H)';
-                        else if(menuName.includes('카모마일')) menuName = '카모마일(H)';
-
-                        const qty = Number(detail.quantity) || 1;
-                        const dateObj = new Date(order.timestamp || Date.now());
-
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${`${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`}</td>
-                            <td>${`${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`}</td>
-                            <td>${order.room || ''}</td>
-                            <td>
-                                <select class="select-custom" onchange="changeGubun('${ym}', '${terminal}', '${id}', '${rowKey}', this.value)">
-                                    <option value="외빈" ${currentGubun === '외빈' ? 'selected' : ''}>외빈</option>
-                                    <option value="내빈" ${currentGubun === '내빈' ? 'selected' : ''}>내빈</option>
-                                </select>
-                            </td>
-                            <td>${menuName}</td>
-                            <td>${qty}</td>
-                            <td>
-                                <select class="select-custom" onchange="changeNote('${ym}', '${terminal}', '${id}', '${rowKey}', this.value)">
-                                    <option value="" ${currentNote === '' ? 'selected' : ''}>선택 없음</option>
-                                    <option value="우유추가" ${currentNote === '우유추가' ? 'selected' : ''}>우유추가</option>
-                                    <option value="둥글레차" ${currentNote === '둥글레차' ? 'selected' : ''}>둥글레차</option>
-                                    <option value="믹스커피" ${currentNote === '믹스커피' ? 'selected' : ''}>믹스커피</option>
-                                    <option value="허브티" ${currentNote === '허브티' ? 'selected' : ''}>허브티</option>
-                                    <option value="인삼차" ${currentNote === '인삼차' ? 'selected' : ''}>인삼차</option>
-                                </select>
-                            </td>
-                            <td class="mgmt-col">
-                                <button class="btn-delete" onclick="deleteOrderData('${ym}', '${terminal}', '${id}')"><i class="fas fa-trash-alt"></i></button>
-                            </td>
-                        `;
-                        mainTbody.appendChild(tr);
-
-                        if (!drinkStats[menuName]) { drinkStats[menuName] = { naebin: 0, waebin: 0 }; }
-                        if (currentGubun === '내빈') { drinkStats[menuName].naebin += qty; } 
-                        else { drinkStats[menuName].waebin += qty; }
+                        allList.push({
+                            timestamp: order.timestamp || 0,
+                            terminal: term === 'terminal1' ? 'T1' : 'T2',
+                            room: order.room || '-',
+                            summary: menuSummary.join(', '),
+                            totalCup: orderCupCount
+                        });
                     });
                 }
             });
 
-            for(let i = globalRowCount; i < 26; i++) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = '<td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td class="mgmt-col">-</td>';
-                mainTbody.appendChild(tr);
+            // 카드 영역 갱신
+            document.getElementById('total-orders').innerText = `${totalOrders}건`;
+            document.getElementById('t1-orders').innerText = `${t1Orders}건`;
+            document.getElementById('t2-orders').innerText = `${t2Orders}건`;
+            document.getElementById('total-cups').innerText = `${totalCups}잔`;
+
+            // 표 갱신
+            const tbody = document.getElementById('data-table-body');
+            if (allList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#777;">해당 월의 주문 데이터가 없습니다.</td></tr>';
+            } else {
+                allList.sort((a, b) => b.timestamp - a.timestamp);
+                tbody.innerHTML = allList.map(item => `
+                    <tr>
+                        <td>${new Date(item.timestamp).toLocaleString()}</td>
+                        <td><span style="color:var(--gold); font-weight:bold;">${item.terminal}</span></td>
+                        <td>${item.room}</td>
+                        <td>${item.summary}</td>
+                        <td><b>${item.totalCup}</b>잔</td>
+                    </tr>
+                `).join('');
             }
 
-            const prefTbody = document.getElementById('preference-tbody');
-            prefTbody.innerHTML = '';
-            let totalNaebinSum = 0; let totalWaebinSum = 0;
-
-            Object.entries(drinkStats).forEach(([menu, stat]) => {
-                const sum = stat.naebin + stat.waebin;
-                totalNaebinSum += stat.naebin; totalWaebinSum += stat.waebin;
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${menu}</td><td>${stat.naebin || '-'}</td><td>${stat.waebin || '-'}</td><td>${sum}</td>`;
-                prefTbody.appendChild(tr);
-            });
-
-            for(let i = Object.keys(drinkStats).length; i < 11; i++) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = '<td>-</td><td>-</td><td>-</td><td>-</td>';
-                prefTbody.appendChild(tr);
-            }
-
-            document.getElementById('total-naebin').innerText = totalNaebinSum;
-            document.getElementById('total-waebin').innerText = totalWaebinSum;
-            document.getElementById('total-all').innerText = totalNaebinSum + totalWaebinSum;
-
-            const naebinRank = Object.entries(drinkStats).filter(a => a[1].naebin > 0).sort((a, b) => b[1].naebin - a[1].naebin);
-            const waebinRank = Object.entries(drinkStats).filter(a => a[1].waebin > 0).sort((a, b) => b[1].waebin - a[1].waebin);
-
-            const naebinRankTbody = document.getElementById('naebin-rank-tbody'); naebinRankTbody.innerHTML = '';
-            for(let i=0; i<3; i++) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${i+1}</td><td>${naebinRank[i] ? naebinRank[i][0] : '-'}</td>`;
-                naebinRankTbody.appendChild(tr);
-            }
-
-            const waebinRankTbody = document.getElementById('waebin-rank-tbody'); waebinRankTbody.innerHTML = '';
-            for(let i=0; i<3; i++) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${i+1}</td><td>${waebinRank[i] ? waebinRank[i][0] : '-'}</td>`;
-                waebinRankTbody.appendChild(tr);
-            }
+            // 차트 갱신
+            renderChart(menuCounts);
         }
 
-        window.changeGubun = (ym, terminal, id, rowKey, value) => {
-            userSelections[rowKey].gubun = value;
-            const path = ym ? `vip_orders/${ym}/${terminal}/${id}/userSelections/${rowKey}` : `vip_orders/${terminal}/${id}/userSelections/${rowKey}`;
-            update(ref(db, path), { gubun: value });
-        };
+        function renderChart(menuCounts) {
+            const ctx = document.getElementById('menuChart').getContext('2d');
+            const labels = Object.keys(menuCounts);
+            const dataValues = Object.values(menuCounts);
 
-        window.changeNote = (ym, terminal, id, rowKey, value) => {
-            userSelections[rowKey].note = value;
-            const path = ym ? `vip_orders/${ym}/${terminal}/${id}/userSelections/${rowKey}` : `vip_orders/${terminal}/${id}/userSelections/${rowKey}`;
-            update(ref(db, path), { note: value });
-        };
+            if (chartInstance) chartInstance.destroy();
 
-        // 단일 개별 삭제
-        window.deleteOrderData = (ym, terminal, id) => {
-            if(confirm("해당 주문 내역을 데이터베이스에서 완전히 영구 삭제하시겠습니까?")) {
-                const path = ym ? `vip_orders/${ym}/${terminal}/${id}` : `vip_orders/${terminal}/${id}`;
-                remove(ref(db, path)).then(() => fetchSelectedData());
-            }
-        };
-
-        // 현재 조회 기간 전체 삭제 함수
-        window.deleteAllSelectedData = async () => {
-            const year = selectYear.value;
-            const month = selectMonth.value;
-            const periodText = month === 'ALL' ? `${year}년 전체` : `${year}년 ${month}월`;
-
-            if (fetchedDataList.length === 0) {
-                alert("삭제할 데이터가 없습니다.");
-                return;
-            }
-
-            const confirmMsg = `⚠️ 경고: [${periodText}] 에 조회된 총 ${fetchedDataList.length}건의 모든 데이터가 데이터베이스에서 영구 삭제됩니다.\n\n정말로 삭제하시겠습니까?`;
-            
-            if (confirm(confirmMsg)) {
-                try {
-                    let targetYMList = [];
-                    if (month === 'ALL') {
-                        for (let m = 1; m <= 12; m++) {
-                            targetYMList.push(`${year}-${String(m).padStart(2, '0')}`);
-                        }
-                    } else {
-                        targetYMList.push(`${year}-${month}`);
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '메뉴별 주문 잔 수',
+                        data: dataValues,
+                        backgroundColor: '#c5a059',
+                        borderColor: '#b08b46',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#ffffff' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#ffffff' }, grid: { color: '#2c3e50' } },
+                        y: { ticks: { color: '#ffffff' }, grid: { color: '#2c3e50' }, beginAtZero: true }
                     }
-
-                    // 선택된 기간 경로 일괄 삭제
-                    const deletePromises = targetYMList.map(ym => remove(ref(db, `vip_orders/${ym}`)));
-                    
-                    // 레거시 경로도 삭제 (조회된 경우)
-                    deletePromises.push(remove(ref(db, 'vip_orders/terminal1')));
-                    deletePromises.push(remove(ref(db, 'vip_orders/terminal2')));
-
-                    await Promise.all(deletePromises);
-
-                    alert("모든 데이터가 성공적으로 삭제되었습니다.");
-                    fetchSelectedData(); // 화면 새로고침
-                } catch (err) {
-                    console.error("전체 삭제 중 오류 발생:", err);
-                    alert("데이터 삭제 중 오류가 발생했습니다.");
-                }
-            }
-        };
-
-        // 엑셀 내보내기 함수 (스타일 보존)
-        window.exportToStyledXlsx = () => {
-            const wb = XLSX.utils.book_new();
-            const ws = {};
-
-            const borderStyle = {
-                top: { style: "thin", color: { rgb: "000000" } },
-                bottom: { style: "thin", color: { rgb: "000000" } },
-                left: { style: "thin", color: { rgb: "000000" } },
-                right: { style: "thin", color: { rgb: "000000" } }
-            };
-
-            const styles = {
-                titleMain: {
-                    font: { bold: true, size: 14, color: { rgb: "000000" } },
-                    fill: { fgColor: { rgb: "B2D8B2" } },
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: borderStyle
-                },
-                titleStats: {
-                    font: { bold: true, size: 11, color: { rgb: "000000" } },
-                    fill: { fgColor: { rgb: "D9E1F2" } },
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: borderStyle
-                },
-                headerMain: {
-                    font: { bold: true, size: 10 },
-                    fill: { fgColor: { rgb: "E2EFDA" } },
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: borderStyle
-                },
-                headerStats: {
-                    font: { bold: true, size: 10 },
-                    fill: { fgColor: { rgb: "F2F2F2" } },
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: borderStyle
-                },
-                headerRank: {
-                    font: { bold: true, size: 10 },
-                    fill: { fgColor: { rgb: "FFF2CC" } },
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: borderStyle
-                },
-                bodyCell: {
-                    font: { size: 10 },
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: borderStyle
-                },
-                totalCell: {
-                    font: { bold: true, size: 10 },
-                    fill: { fgColor: { rgb: "D9D9D9" } },
-                    alignment: { horizontal: "center", vertical: "center" },
-                    border: borderStyle
-                }
-            };
-
-            function setCell(r, c, val, styleObj) {
-                const cellRef = XLSX.utils.encode_cell({ r, c });
-                ws[cellRef] = { v: val === undefined || val === null ? "" : val, t: typeof val === 'number' ? 'n' : 's', s: styleObj };
-            }
-
-            // 1. 제목 행
-            setCell(0, 0, "VIP Concierge APP 활용 현황", styles.titleMain);
-            for(let c=1; c<=6; c++) setCell(0, c, "", styles.titleMain);
-
-            setCell(0, 8, "내빈/외빈 음료 선호도", styles.titleStats);
-            for(let c=9; c<=11; c++) setCell(0, c, "", styles.titleStats);
-
-            setCell(0, 13, "내빈 선호 순위", styles.titleStats);
-            setCell(0, 14, "", styles.titleStats);
-
-            setCell(0, 16, "외빈 선호 순위", styles.titleStats);
-            setCell(0, 17, "", styles.titleStats);
-
-            // 2. 헤더 행
-            const mainHeaders = ["일 자", "시간", "룸", "구분", "제공음료", "수량", "특이사항"];
-            mainHeaders.forEach((h, i) => setCell(1, i, h, styles.headerMain));
-
-            const prefHeaders = ["제공음료", "내빈", "외빈", "총합계"];
-            prefHeaders.forEach((h, i) => setCell(1, 8 + i, h, styles.headerStats));
-
-            ["순위", "음료"].forEach((h, i) => setCell(1, 13 + i, h, styles.headerRank));
-            ["순위", "음료"].forEach((h, i) => setCell(1, 16 + i, h, styles.headerRank));
-
-            // 3. 본문 데이터
-            const mainRows = document.querySelectorAll("#main-history-tbody tr");
-            mainRows.forEach((tr, rIdx) => {
-                const tds = tr.querySelectorAll("td");
-                if (tds.length >= 7) {
-                    setCell(rIdx + 2, 0, tds[0].innerText.trim(), styles.bodyCell);
-                    setCell(rIdx + 2, 1, tds[1].innerText.trim(), styles.bodyCell);
-                    setCell(rIdx + 2, 2, tds[2].innerText.trim(), styles.bodyCell);
-                    
-                    const gubunSelect = tds[3].querySelector("select");
-                    const gubunVal = gubunSelect ? gubunSelect.value : tds[3].innerText.trim();
-                    setCell(rIdx + 2, 3, gubunVal, styles.bodyCell);
-                    
-                    setCell(rIdx + 2, 4, tds[4].innerText.trim(), styles.bodyCell);
-                    
-                    const qty = Number(tds[5].innerText.trim());
-                    setCell(rIdx + 2, 5, isNaN(qty) ? tds[5].innerText.trim() : qty, styles.bodyCell);
-                    
-                    const noteSelect = tds[6].querySelector("select");
-                    const noteVal = noteSelect ? noteSelect.value : tds[6].innerText.trim();
-                    setCell(rIdx + 2, 6, noteVal, styles.bodyCell);
                 }
             });
+        }
 
-            const prefRows = document.querySelectorAll("#preference-tbody tr");
-            prefRows.forEach((tr, rIdx) => {
-                const tds = tr.querySelectorAll("td");
-                if (tds.length >= 4) {
-                    setCell(rIdx + 2, 8, tds[0].innerText.trim(), styles.bodyCell);
-                    setCell(rIdx + 2, 9, isNaN(Number(tds[1].innerText)) ? tds[1].innerText.trim() : Number(tds[1].innerText), styles.bodyCell);
-                    setCell(rIdx + 2, 10, isNaN(Number(tds[2].innerText)) ? tds[2].innerText.trim() : Number(tds[2].innerText), styles.bodyCell);
-                    setCell(rIdx + 2, 11, isNaN(Number(tds[3].innerText)) ? tds[3].innerText.trim() : Number(tds[3].innerText), styles.bodyCell);
-                }
-            });
-
-            const totalRowR = prefRows.length + 2;
-            setCell(totalRowR, 8, "총합계", styles.totalCell);
-            setCell(totalRowR, 9, Number(document.getElementById("total-naebin").innerText), styles.totalCell);
-            setCell(totalRowR, 10, Number(document.getElementById("total-waebin").innerText), styles.totalCell);
-            setCell(totalRowR, 11, Number(document.getElementById("total-all").innerText), styles.totalCell);
-
-            const naebinRows = document.querySelectorAll("#naebin-rank-tbody tr");
-            naebinRows.forEach((tr, rIdx) => {
-                const tds = tr.querySelectorAll("td");
-                if (tds.length >= 2) {
-                    setCell(rIdx + 2, 13, isNaN(Number(tds[0].innerText)) ? tds[0].innerText.trim() : Number(tds[0].innerText), styles.bodyCell);
-                    setCell(rIdx + 2, 14, tds[1].innerText.trim(), styles.bodyCell);
-                }
-            });
-
-            const waebinRows = document.querySelectorAll("#waebin-rank-tbody tr");
-            waebinRows.forEach((tr, rIdx) => {
-                const tds = tr.querySelectorAll("td");
-                if (tds.length >= 2) {
-                    setCell(rIdx + 2, 16, isNaN(Number(tds[0].innerText)) ? tds[0].innerText.trim() : Number(tds[0].innerText), styles.bodyCell);
-                    setCell(rIdx + 2, 17, tds[1].innerText.trim(), styles.bodyCell);
-                }
-            });
-
-            // 4. 셀 병합 및 열 너비 지정
-            ws['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-                { s: { r: 0, c: 8 }, e: { r: 0, c: 11 } },
-                { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } },
-                { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }
-            ];
-
-            ws['!cols'] = [
-                {wch: 12}, {wch: 10}, {wch: 8}, {wch: 10}, {wch: 18}, {wch: 8}, {wch: 15}, {wch: 3}, 
-                {wch: 18}, {wch: 8}, {wch: 8}, {wch: 10}, {wch: 3}, 
-                {wch: 8}, {wch: 12}, {wch: 3}, {wch: 8}, {wch: 12}
-            ];
-
-            ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 27, c: 17 } });
-
-            XLSX.utils.book_append_sheet(wb, ws, "활용현황 및 통계");
-
-            const periodText = `${selectYear.value}_${selectMonth.value}`;
-            XLSX.writeFile(wb, `VIP_Concierge_APP_활용현황_${periodText}.xlsx`);
-        };
-
-        // 초기 화면 실행
-        fetchSelectedData();
+        // 페이지 진입 시 자동 실시간 감시 시작
+        setupRealtimeListener();
     </script>
 </body>
 </html>
