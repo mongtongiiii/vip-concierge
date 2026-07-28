@@ -282,7 +282,7 @@
 
         // 데이터를 직접 삭제하지 않고 현황판에서만 숨김 처리 (활용 현황 데이터는 유지를 위함)
         window.deleteOrder = (id) => {
-            if(confirm("이 주문을 현황판에서 삭제하시겠습니까? (통계 데이터에는 유치됩니다)")) {
+            if(confirm("이 주문을 현황판에서 삭제하시겠습니까? (통계 데이터에는 유지됩니다)")) {
                 const ym = getYearMonth();
                 update(ref(db, `vip_orders/${ym}/${TERMINAL_PATH}/${id}`), {
                     status: 'hidden',
