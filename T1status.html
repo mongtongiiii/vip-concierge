@@ -132,39 +132,26 @@
         }
 
         .card-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            margin-top: 20px;
         }
 
         .btn-single-complete {
-            flex: 2; 
+            width: 100%; 
             background: #252f39; 
             border: 1px solid #444;
             color: #ddd; 
-            padding: 10px; 
+            padding: 12px; 
             border-radius: 6px; 
             cursor: pointer; 
             font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s ease;
         }
+        
         .btn-single-complete:hover { 
             border-color: var(--gold); 
-            color: var(--gold); 
-        }
-
-        .btn-delete {
-            flex: 1;
-            background: #2a1b1d;
-            border: 1px solid #721c24;
-            color: #f8d7da;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .btn-delete:hover {
-            background: #721c24;
-            color: #fff;
+            background: var(--gold);
+            color: #000; 
         }
     </style>
 </head>
@@ -199,12 +186,7 @@
         
         const TERMINAL_PATH = 'terminal1';
         let processedIds = new Set(); 
-        let pendingOrdersCache = {};
-
-        const getYearMonth = () => {
-            const now = new Date();
-            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        };
+        let pendingOrdersMap = {};
 
         function updateClock() {
             const now = new Date();
@@ -216,18 +198,37 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        const currentYM = getYearMonth();
-        onValue(ref(db, `vip_orders/${currentYM}/${TERMINAL_PATH}`), (snap) => {
-            const data = snap.val() || {};
+        // 실시간 주문 수신 및 화면 렌더링
+        onValue(ref(db, 'vip_orders'), (snap) => {
+            const allData = snap.val() || {};
             const container = document.getElementById('order-container');
             
-            // 완료되거나 삭제(숨김) 처리되지 않은 주문만 노출
-            const pendingOrders = Object.entries(data).filter(([id, order]) => 
-                order.status !== 'completed' && order.status !== 'hidden'
-            );
-            pendingOrdersCache = Object.fromEntries(pendingOrders);
+            pendingOrdersMap = {};
+            let pendingList = [];
 
-            if(pendingOrders.length === 0) { 
+            // 구조 자동 탐색 (월별 경로 및 상위 경로 모두 지원)
+            Object.entries(allData).forEach(([key, val]) => {
+                if (key.includes('-') && val[TERMINAL_PATH]) {
+                    Object.entries(val[TERMINAL_PATH]).forEach(([orderId, order]) => {
+                        if (order.status !== 'completed' && order.status !== 'hidden') {
+                            const fullPath = `vip_orders/${key}/${TERMINAL_PATH}/${orderId}`;
+                            pendingOrdersMap[orderId] = { ...order, fullPath, id: orderId };
+                            pendingList.push(pendingOrdersMap[orderId]);
+                        }
+                    });
+                } 
+                else if (key === TERMINAL_PATH) {
+                    Object.entries(val).forEach(([orderId, order]) => {
+                        if (order.status !== 'completed' && order.status !== 'hidden') {
+                            const fullPath = `vip_orders/${TERMINAL_PATH}/${orderId}`;
+                            pendingOrdersMap[orderId] = { ...order, fullPath, id: orderId };
+                            pendingList.push(pendingOrdersMap[orderId]);
+                        }
+                    });
+                }
+            });
+
+            if (pendingList.length === 0) { 
                 container.innerHTML = '<div style="color:#555; text-align:center; grid-column: 1/-1; margin-top:50px;">현재 대기 중인 주문이 없습니다.</div>'; 
                 return; 
             }
@@ -235,75 +236,78 @@
             let playSnd = false;
             let htmlBuffer = '';
             
-            const sortedOrders = pendingOrders.sort((a,b) => b[1].timestamp - a[1].timestamp);
+            pendingList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-            sortedOrders.forEach(([id, order]) => {
-                if(order.isNew && !processedIds.has(id)) {
+            pendingList.forEach((order) => {
+                const id = order.id;
+
+                if (order.isNew && !processedIds.has(id)) {
                     playSnd = true;
                     processedIds.add(id);
-                    setTimeout(() => update(ref(db, `vip_orders/${currentYM}/${TERMINAL_PATH}/${id}`), {isNew: false}), 1000);
+                    setTimeout(() => update(ref(db, order.fullPath), { isNew: false }), 1000);
                 }
+
+                let detailsHtml = '';
+                if (order.orderDetails && Array.isArray(order.orderDetails)) {
+                    detailsHtml = order.orderDetails.map(i => `
+                        <div class="item-row">
+                            <span>${i.menu || ''}</span>
+                            <strong>${i.quantity || 1}잔</strong>
+                        </div>
+                    `).join('');
+                }
+
+                const timeStr = order.timestamp 
+                    ? new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    : '';
 
                 htmlBuffer += `
                     <div class="order-card ${order.isNew ? 'new' : ''}">
-                        <span class="room-badge">${order.room}</span>
-                        <span class="order-time">${new Date(order.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
+                        <span class="room-badge">${order.room || '룸 미지정'}</span>
+                        <span class="order-time">${timeStr}</span>
                         <div style="margin-top:10px;">
-                            ${order.orderDetails.map(i => `
-                                <div class="item-row">
-                                    <span>${i.menu}</span>
-                                    <strong>${i.quantity}잔</strong>
-                                </div>
-                            `).join('')}
+                            ${detailsHtml}
                         </div>
                         <div class="card-actions">
                             <button class="btn-single-complete" onclick="finishOrder('${id}')">주문 완료</button>
-                            <button class="btn-delete" onclick="deleteOrder('${id}')">삭제</button>
                         </div>
                     </div>`;
             });
 
             container.innerHTML = htmlBuffer;
 
-            if(playSnd) {
+            if (playSnd) {
                 const alarm = document.getElementById('alarm');
                 alarm.currentTime = 0;
                 alarm.play().catch(e => console.log("사운드 재생을 위해 화면을 클릭해주세요."));
             }
         });
 
+        // 단일 주문 완료
         window.finishOrder = (id) => {
-            const ym = getYearMonth();
-            update(ref(db, `vip_orders/${ym}/${TERMINAL_PATH}/${id}`), {
-                status: 'completed',
-                completedAt: Date.now()
-            });
-        };
-
-        // 데이터를 직접 삭제하지 않고 현황판에서만 숨김 처리 (활용 현황 데이터는 유지를 위함)
-        window.deleteOrder = (id) => {
-            if(confirm("이 주문을 현황판에서 삭제하시겠습니까? (통계 데이터에는 유지됩니다)")) {
-                const ym = getYearMonth();
-                update(ref(db, `vip_orders/${ym}/${TERMINAL_PATH}/${id}`), {
-                    status: 'hidden',
-                    deletedAt: Date.now()
+            const targetOrder = pendingOrdersMap[id];
+            if (targetOrder) {
+                update(ref(db, targetOrder.fullPath), {
+                    status: 'completed',
+                    completedAt: Date.now()
                 });
             }
         };
 
+        // 전체 주문 완료
         window.clearAllOrders = () => {
-            const pendingIds = Object.keys(pendingOrdersCache);
-            if(pendingIds.length === 0) {
+            const pendingIds = Object.keys(pendingOrdersMap);
+            if (pendingIds.length === 0) {
                 alert("처리할 대기 주문이 없습니다.");
                 return;
             }
 
-            if(confirm("현재 표시된 모든 주문을 완료 처리하시겠습니까?")) {
-                const ym = getYearMonth();
+            if (confirm("현재 표시된 모든 주문을 완료 처리하시겠습니까?")) {
                 const updates = {};
                 pendingIds.forEach(id => {
-                    updates[`vip_orders/${ym}/${TERMINAL_PATH}/${id}/status`] = 'completed';
-                    updates[`vip_orders/${ym}/${TERMINAL_PATH}/${id}/completedAt`] = Date.now();
+                    const fullPath = pendingOrdersMap[id].fullPath;
+                    updates[`${fullPath}/status`] = 'completed';
+                    updates[`${fullPath}/completedAt`] = Date.now();
                 });
                 
                 update(ref(db), updates).then(() => {
