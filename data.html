@@ -219,6 +219,21 @@
         let fetchedDataList = [];
         const userSelections = {};
 
+        // 날짜/시간 일치 여부 검증 보조 함수
+        function isMatchingPeriod(timestamp, targetYear, targetMonth) {
+            if (!timestamp) return false;
+            const dateObj = new Date(timestamp);
+            if (isNaN(dateObj.getTime())) return false;
+
+            const yStr = String(dateObj.getFullYear());
+            const mStr = String(dateObj.getMonth() + 1).padStart(2, '0');
+
+            if (yStr !== String(targetYear)) return false;
+            if (targetMonth !== 'ALL' && mStr !== String(targetMonth)) return false;
+
+            return true;
+        }
+
         // 데이터 조회 함수
         async function fetchSelectedData() {
             const year = selectYear.value;
@@ -236,6 +251,7 @@
             fetchedDataList = [];
 
             try {
+                // 1. 선택 연/월 노드에서 데이터 조회
                 const promises = targetYMList.map(ym => get(ref(db, `vip_orders/${ym}`)));
                 const snapshots = await Promise.all(promises);
 
@@ -246,27 +262,32 @@
                         ['terminal1', 'terminal2'].forEach(termKey => {
                             const termData = monthData[termKey] || {};
                             Object.entries(termData).forEach(([id, order]) => {
-                                fetchedDataList.push({ ym: ymStr, id, order, terminal: termKey });
+                                // timestamp가 실제 선택한 연/월과 맞는지 이중 검증
+                                if (isMatchingPeriod(order.timestamp, year, month)) {
+                                    fetchedDataList.push({ ym: ymStr, id, order, terminal: termKey });
+                                }
                             });
                         });
                     }
                 });
 
-                // 루트 레벨 데이터 지원 (구버전 호환)
-                if (fetchedDataList.length === 0) {
-                    const legacyT1 = await get(ref(db, 'vip_orders/terminal1'));
-                    const legacyT2 = await get(ref(db, 'vip_orders/terminal2'));
+                // 2. 루트 레벨 데이터 지원 (구버전 호환) - 날짜 필터링 필수 적용
+                const legacyT1 = await get(ref(db, 'vip_orders/terminal1'));
+                const legacyT2 = await get(ref(db, 'vip_orders/terminal2'));
 
-                    if (legacyT1.exists()) {
-                        Object.entries(legacyT1.val()).forEach(([id, order]) => {
+                if (legacyT1.exists()) {
+                    Object.entries(legacyT1.val()).forEach(([id, order]) => {
+                        if (isMatchingPeriod(order.timestamp, year, month)) {
                             fetchedDataList.push({ ym: '', id, order, terminal: 'terminal1' });
-                        });
-                    }
-                    if (legacyT2.exists()) {
-                        Object.entries(legacyT2.val()).forEach(([id, order]) => {
+                        }
+                    });
+                }
+                if (legacyT2.exists()) {
+                    Object.entries(legacyT2.val()).forEach(([id, order]) => {
+                        if (isMatchingPeriod(order.timestamp, year, month)) {
                             fetchedDataList.push({ ym: '', id, order, terminal: 'terminal2' });
-                        });
-                    }
+                        }
+                    });
                 }
 
                 updateDashboard();
@@ -435,21 +456,10 @@
             
             if (confirm(confirmMsg)) {
                 try {
-                    let targetYMList = [];
-                    if (month === 'ALL') {
-                        for (let m = 1; m <= 12; m++) {
-                            targetYMList.push(`${year}-${String(m).padStart(2, '0')}`);
-                        }
-                    } else {
-                        targetYMList.push(`${year}-${month}`);
-                    }
-
-                    // 선택된 기간 경로 일괄 삭제
-                    const deletePromises = targetYMList.map(ym => remove(ref(db, `vip_orders/${ym}`)));
-                    
-                    // 레거시 경로도 삭제 (조회된 경우)
-                    deletePromises.push(remove(ref(db, 'vip_orders/terminal1')));
-                    deletePromises.push(remove(ref(db, 'vip_orders/terminal2')));
+                    const deletePromises = fetchedDataList.map(({ ym, terminal, id }) => {
+                        const path = ym ? `vip_orders/${ym}/${terminal}/${id}` : `vip_orders/${terminal}/${id}`;
+                        return remove(ref(db, path));
+                    });
 
                     await Promise.all(deletePromises);
 
